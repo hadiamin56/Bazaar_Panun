@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1100" viewBox="0 0 900 1100">
+  <defs>
+    <linearGradient id="g14" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <pattern id="p14" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(2)">
+      <circle cx="30" cy="30" r="12" fill="white" fill-opacity="0.07"/>
+    </pattern>
+  </defs>
+  <rect width="900" height="1100" fill="url(#g14)"/>
+  <rect width="900" height="1100" fill="url(#p14)"/>
+  <rect x="60" y="60" width="780" height="980" fill="none" stroke="white" stroke-opacity="0.35" stroke-width="2"/>
+  <text x="450" y="530" font-family="Georgia, 'Times New Roman', serif" font-size="46" fill="white" text-anchor="middle" font-weight="600">Sharara Style Suit</text>
+  <text x="450" y="580" font-family="Arial, sans-serif" font-size="24" fill="white" fill-opacity="0.85" text-anchor="middle" letter-spacing="4">SUITS</text>
+  <text x="450" y="1030" font-family="Georgia, serif" font-size="30" fill="white" fill-opacity="0.9" text-anchor="middle" letter-spacing="6">BAZAAR PANUN</text>
+</svg>
