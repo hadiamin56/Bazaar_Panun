@@ -45,7 +45,10 @@ function LoginGate({ onSuccess }: { onSuccess: () => void }) {
         body: JSON.stringify({ password }),
       });
       if (res.ok) onSuccess();
-      else setError(res.status === 401 ? "Incorrect password" : "Login failed. Please try again.");
+      else {
+        const body = await res.json().catch(() => null);
+        setError(body?.error || `Login failed (error ${res.status}). Please try again.`);
+      }
     } catch {
       setError("Login failed. Please try again.");
     } finally {

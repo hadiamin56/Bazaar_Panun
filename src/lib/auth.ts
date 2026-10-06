@@ -23,11 +23,22 @@ function safeEqual(a: string, b: string): boolean {
   return ab.length === bb.length && timingSafeEqual(ab, bb);
 }
 
+// Explains a missing server setting, so the login page can say what to fix.
+export function adminConfigProblem(): string | null {
+  if (!process.env.ADMIN_PASSWORD?.trim()) return "ADMIN_PASSWORD is not set on the server.";
+  const secret = process.env.ADMIN_SESSION_SECRET ?? "";
+  if (secret.length < 32) {
+    return `ADMIN_SESSION_SECRET must be at least 32 characters (it is ${secret ? secret.length : "not set"}).`;
+  }
+  return null;
+}
+
 export function checkAdminPassword(password: string): boolean {
-  const expected = process.env.ADMIN_PASSWORD;
+  // Trimmed so a stray space pasted into the hosting dashboard doesn't lock you out.
+  const expected = process.env.ADMIN_PASSWORD?.trim();
   if (!expected) return false;
   // Compare HMACs so the comparison takes the same time whatever the input length.
-  return safeEqual(sign(`pw:${password}`), sign(`pw:${expected}`));
+  return safeEqual(sign(`pw:${password.trim()}`), sign(`pw:${expected}`));
 }
 
 export function createSessionToken(): { token: string; maxAge: number } {
@@ -44,6 +55,7 @@ function isValidToken(token: string | undefined): boolean {
 }
 
 export async function isAdmin(): Promise<boolean> {
+  if (adminConfigProblem()) return false;
   const store = await cookies();
   return isValidToken(store.get(ADMIN_COOKIE)?.value);
 }
