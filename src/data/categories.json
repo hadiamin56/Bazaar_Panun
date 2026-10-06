@@ -1,0 +1,38 @@
+[
+  {
+    "slug": "unstitched",
+    "name": "Unstitched Suits",
+    "description": "Premium unstitched lawn, cotton & georgette suit pieces",
+    "image": "/products/cat-unstitched.svg"
+  },
+  {
+    "slug": "suits",
+    "name": "Stitched Suits",
+    "description": "Ready-to-wear designer suits, tailored to perfection",
+    "image": "/products/cat-suits.svg"
+  },
+  {
+    "slug": "bridal-wear",
+    "name": "Bridal Wear",
+    "description": "Exquisite bridal & wedding collection",
+    "image": "/products/cat-bridal.svg"
+  },
+  {
+    "slug": "fabric",
+    "name": "Fabric & Brocade",
+    "description": "Trinity brocade, silk & velvet fabric by the meter",
+    "image": "/products/cat-fabric.svg"
+  },
+  {
+    "slug": "shawls",
+    "name": "Pashmina & Shawls",
+    "description": "Handcrafted Kashmiri pashmina shawls",
+    "image": "/products/cat-shawls.svg"
+  },
+  {
+    "slug": "clutches",
+    "name": "Clutches & Accessories",
+    "description": "Custom clutches and matching accessories",
+    "image": "/products/cat-clutches.svg"
+  }
+]
