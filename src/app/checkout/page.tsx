@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatPrice } from "@/lib/format";
-import { site } from "@/lib/site";
+import { useSite } from "@/components/SiteProvider";
 import type { OrderItem } from "@/lib/types";
 
 export default function CheckoutPage() {
@@ -24,12 +24,13 @@ export default function CheckoutPage() {
     pincode: "",
     notes: "",
   });
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "whatsapp">("cod");
+  const { checkout, store } = useSite().settings;
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "whatsapp">(checkout.codEnabled ? "cod" : "whatsapp");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const shipping = subtotal >= site.freeShippingThreshold || subtotal === 0 ? 0 : site.shippingFee;
+  const shipping = subtotal >= checkout.freeShippingThreshold || subtotal === 0 ? 0 : checkout.shippingFee;
   const total = subtotal + shipping;
 
   if (items.length === 0) {
@@ -75,9 +76,9 @@ export default function CheckoutPage() {
       if (paymentMethod === "whatsapp") {
         const lines = (order.items as OrderItem[]).map((i) => `- ${i.name}${i.size ? ` (${i.size})` : ""} x${i.quantity} — ${formatPrice(i.price * i.quantity)}`);
         const msg = encodeURIComponent(
-          `Hi Bazaar Panun! I'd like to place order ${order.id}:\n${lines.join("\n")}\n\nTotal: ${formatPrice(order.total)}\n\nName: ${form.name}\nPhone: ${form.phone}\nAddress: ${form.address}, ${form.city} - ${form.pincode}`
+          `Hi ${store.name}! I'd like to place order ${order.id}:\n${lines.join("\n")}\n\nTotal: ${formatPrice(order.total)}\n\nName: ${form.name}\nPhone: ${form.phone}\nAddress: ${form.address}, ${form.city} - ${form.pincode}`
         );
-        window.open(`https://wa.me/${site.whatsappNumber}?text=${msg}`, "_blank");
+        window.open(`https://wa.me/${store.whatsappNumber}?text=${msg}`, "_blank");
       }
 
       clear();
@@ -119,7 +120,10 @@ export default function CheckoutPage() {
           <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">Payment Method</h2>
             <div className="space-y-3">
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 has-[:checked]:border-brand-purple has-[:checked]:bg-brand-purple/5">
+              {!checkout.codEnabled && !checkout.whatsappOrderEnabled && (
+                <p className="text-sm text-red-500">Online ordering is paused right now. Please contact us on WhatsApp.</p>
+              )}
+              {checkout.codEnabled && <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 has-[:checked]:border-brand-purple has-[:checked]:bg-brand-purple/5">
                 <input
                   type="radio"
                   name="payment"
@@ -131,8 +135,8 @@ export default function CheckoutPage() {
                   <p className="text-sm font-medium text-gray-800">Cash on Delivery</p>
                   <p className="text-xs text-gray-500">Pay when your order arrives at your doorstep</p>
                 </div>
-              </label>
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 has-[:checked]:border-brand-purple has-[:checked]:bg-brand-purple/5">
+              </label>}
+              {checkout.whatsappOrderEnabled && <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 has-[:checked]:border-brand-purple has-[:checked]:bg-brand-purple/5">
                 <input
                   type="radio"
                   name="payment"
@@ -144,7 +148,7 @@ export default function CheckoutPage() {
                   <p className="text-sm font-medium text-gray-800">Confirm via WhatsApp</p>
                   <p className="text-xs text-gray-500">We&apos;ll send your order summary to WhatsApp to confirm details &amp; payment</p>
                 </div>
-              </label>
+              </label>}
             </div>
           </div>
 
@@ -152,7 +156,7 @@ export default function CheckoutPage() {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || (!checkout.codEnabled && !checkout.whatsappOrderEnabled)}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-purple py-3.5 text-sm font-semibold text-white transition hover:bg-brand-purple/90 disabled:opacity-60"
           >
             {submitting && <Loader2 size={16} className="animate-spin" />}

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { prisma } from "./db";
 import type { Prisma, Product as ProductRow, Category as CategoryRow } from "@/generated/prisma/client";
 import type { Product, Category } from "./types";
@@ -41,10 +42,11 @@ export async function getProducts(): Promise<Product[]> {
   return rows.map(toProduct);
 }
 
-export async function getCategories(): Promise<Category[]> {
+// Read once per request (the layout, menu and pages all need them).
+export const getCategories = cache(async (): Promise<Category[]> => {
   const rows = await prisma.category.findMany({ orderBy: { sortOrder: "asc" } });
   return rows.map(toCategory);
-}
+});
 
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {
   const row = await prisma.product.findUnique({ where: { slug } });

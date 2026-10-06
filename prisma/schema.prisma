@@ -104,3 +104,38 @@ model OrderItem {
   @@index([orderId])
   @@map("order_items")
 }
+
+// Website settings and page content edited from the admin. Stored as JSON under one key ("site");
+// missing fields fall back to the defaults in src/lib/settings-defaults.ts.
+model Setting {
+  key       String   @id @db.VarChar(50)
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// Uploaded images (product photos, category images, logo, banners), served from /api/images/<id>.
+model Image {
+  id        String   @id @db.VarChar(32)
+  mimeType  String   @db.VarChar(50)
+  data      Bytes    @db.MediumBlob
+  size      Int
+  createdAt DateTime @default(now())
+
+  @@map("images")
+}
+
+// Messages sent from the contact page.
+model Message {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(150)
+  email     String   @db.VarChar(200)
+  phone     String?  @db.VarChar(30)
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("messages")
+}

@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelatedProducts } from "@/lib/products";
 import { ProductDetailClient } from "@/components/ProductDetailClient";
+import { getSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const [product, { store }] = await Promise.all([getProductBySlug(slug), getSettings()]);
   if (!product) return {};
   return {
-    title: `${product.name} | Bazaar Panun`,
+    title: `${product.name} | ${store.name}`,
     description: product.description,
   };
 }

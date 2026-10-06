@@ -5,9 +5,10 @@ import Image from "next/image";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatPrice } from "@/lib/format";
-import { site } from "@/lib/site";
+import { useSite } from "@/components/SiteProvider";
 
 export default function CartPage() {
+  const site = useSite().settings.checkout;
   const items = useCartStore((s) => s.items);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);

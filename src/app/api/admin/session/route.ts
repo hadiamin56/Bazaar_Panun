@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { clientIp, rateLimited } from "@/lib/rate-limit";
 import { ADMIN_COOKIE, adminConfigProblem, checkAdminPassword, createSessionToken, isAdmin } from "@/lib/auth";
 
 // Is the current visitor logged in as admin?
@@ -10,6 +11,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const problem = adminConfigProblem();
   if (problem) return NextResponse.json({ error: `Admin login is not set up: ${problem}` }, { status: 500 });
+  if (rateLimited(`login:${clientIp(req.headers)}`, 10, 15 * 60 * 1000)) {
+    return NextResponse.json({ error: "Too many login attempts. Please wait 15 minutes and try again." }, { status: 429 });
+  }
   const body = await req.json().catch(() => null);
   const password = typeof body?.password === "string" ? body.password : "";
   if (!checkAdminPassword(password)) {

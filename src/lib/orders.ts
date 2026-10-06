@@ -1,7 +1,7 @@
 import "server-only";
 import { randomInt } from "crypto";
 import { prisma } from "./db";
-import { site } from "./site";
+import { getSettings } from "./settings";
 import type { Prisma } from "@/generated/prisma/client";
 import type { Order } from "./types";
 
@@ -118,7 +118,10 @@ export async function createOrder(body: unknown): Promise<Order> {
     pincode: text(c.pincode, "Pincode", 20, true)!,
     notes: text(c.notes, "Notes", 2000, false),
   };
+  const { checkout } = await getSettings();
   const paymentMethod = b.paymentMethod === "whatsapp" ? "whatsapp" : "cod";
+  if (paymentMethod === "cod" && !checkout.codEnabled) throw new OrderError("Cash on Delivery is not available right now.");
+  if (paymentMethod === "whatsapp" && !checkout.whatsappOrderEnabled) throw new OrderError("WhatsApp orders are not available right now.");
 
   const row = await prisma.$transaction(async (tx) => {
     const ids = [...new Set(items.map((i) => i.productId))];
@@ -156,7 +159,7 @@ export async function createOrder(body: unknown): Promise<Order> {
     }
 
     const subtotal = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
-    const shipping = subtotal >= site.freeShippingThreshold ? 0 : site.shippingFee;
+    const shipping = subtotal >= checkout.freeShippingThreshold ? 0 : checkout.shippingFee;
 
     return tx.order.create({
       data: {

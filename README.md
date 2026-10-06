@@ -12,7 +12,8 @@ Built with Next.js (App Router), TypeScript and Tailwind CSS.
 - **Product pages**: image gallery, size/colour selection, quantity, related products
 - **Cart & Wishlist**: persisted client-side with Zustand, free-shipping threshold logic
 - **Checkout**: address form, Cash on Delivery or WhatsApp-confirmed orders, order confirmation page
-- **Admin dashboard** (`/admin`): server-side login, product add/edit/delete and order management
+- **Admin dashboard** (`/admin`): manage orders, products and photos, categories, contact messages,
+  store settings, homepage content and the About/Contact pages
 - **WhatsApp & Instagram integration**: floating chat button, WhatsApp order deep-links
 - Fully responsive, mobile-first UI
 
@@ -45,9 +46,22 @@ or with `npm run db:studio`.
 
 ## Admin Access
 
-Go to `/admin` and log in with the `ADMIN_PASSWORD` from your `.env`. The password is checked on the
-server and the login is kept in a secure cookie for 12 hours. Adding, editing and deleting products,
-and viewing or updating orders, all require this login.
+Go to `/admin` and log in with the `ADMIN_PASSWORD` from your settings. The password is checked on the
+server and the login is kept in a secure cookie for 12 hours (10 wrong attempts locks login for 15 minutes).
+
+The admin has these tabs:
+
+| Tab                | What you can do                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------- |
+| **Orders**         | See orders with customer details, filter by status, change status (cancelling returns the stock)   |
+| **Products**       | Add, edit, delete products; upload and reorder photos; price, stock, sizes, colours, labels        |
+| **Categories**     | Add, edit, delete and reorder categories (used in the menu, footer, shop filters and homepage)     |
+| **Messages**       | Read messages sent from the Contact page                                                          |
+| **Store Settings** | Store name, logo, announcement bar, WhatsApp, Instagram, email, address, shipping fee, payment options, footer, SEO |
+| **Homepage**       | Hero banner (image, text, buttons), highlights, section headings, show/hide sections, customer reviews |
+| **Pages**          | About Us and Contact page text and images                                                          |
+
+Changes are live on the website as soon as you save.
 
 ## Data
 
@@ -56,18 +70,22 @@ All data lives in MySQL:
 | Table         | What it holds                                                         |
 | ------------- | --------------------------------------------------------------------- |
 | `categories`  | Shop categories                                                       |
-| `products`    | Products, prices, stock, images, sizes, colours                       |
+| `products`    | Products, prices, stock, photos, sizes, colours                       |
 | `orders`      | Customer details, totals, payment method, status                      |
 | `order_items` | Items in each order (name and price saved as they were when ordered)  |
+| `settings`    | Everything set in Store Settings, Homepage and Pages                  |
+| `images`      | Uploaded photos (resized in the browser before upload, served from `/api/images/...`) |
+| `messages`    | Contact form messages                                                 |
 
 - The table layout is defined in `prisma/schema.prisma`. After changing it, run
   `npm run db:migrate -- --name what-changed` to create a migration in `prisma/migrations/`.
 - Prices and totals are always calculated on the server from the database, never taken from the browser.
 - Stock goes down when an order is placed, and comes back if the order is cancelled in the admin.
 - Cart and wishlist are kept in the shopper's browser until checkout.
-- The starting catalogue comes from `src/data/products.seed.json` and `src/data/categories.json`.
-  Running `npm run db:seed` again only adds products that are missing; it never overwrites your edits.
-  Categories shown in the menu and footer are read from `src/data/categories.json`.
+- Photos are stored in the database, so they survive redeploys on any host (no extra storage service needed).
+- `npm run db:seed` loads the sample categories and products from `src/data/` **once** per database.
+  After that it does nothing, so products or categories you delete in the admin never come back.
+- Default texts for the website (used until you change them in the admin) are in `src/lib/settings-defaults.ts`.
 
 ## Deploying to Render (free, for testing)
 
@@ -90,12 +108,11 @@ Render runs the website; the database is a free hosted MySQL from [Aiven](https:
    If you created the service by hand as a **Docker** web service instead, that works too: Render uses
    the `Dockerfile`, which sets up the tables when the site starts. Add the same environment variables
    (including `ADMIN_SESSION_SECRET`, a random string of 32+ characters) under **Environment**.
-4. **Deploy.** Each deploy creates or updates the tables and, the first time only, loads the 25 starting
-   products. Your site will be at `https://bazaar-panun.onrender.com` (or similar).
+4. **Deploy.** Each deploy creates or updates the tables and, the first time only, loads the sample
+   categories and products. Your site will be at `https://bazaar-panun.onrender.com` (or similar).
 
 Free plan notes: the site sleeps after 15 minutes without visitors, so the first visit after that takes
-up to a minute. Files saved on the Render server are lost on each deploy, so product photos should stay
-in the repository (or a storage service) rather than be uploaded to the server.
+up to a minute. Uploaded photos are stored in the database, so they are kept across deploys.
 
 ## Deploying to Hostinger
 

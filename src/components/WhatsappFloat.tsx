@@ -1,10 +1,17 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import { MessageCircle } from "lucide-react";
-import { site } from "@/lib/site";
+import { useSite } from "@/components/SiteProvider";
 
 export function WhatsappFloat() {
+  const { store } = useSite().settings;
+  const pathname = usePathname();
+  // Hidden in the admin, where it would cover the Save button.
+  if (!store.whatsappNumber || pathname.startsWith("/admin")) return null;
   return (
     <a
-      href={`https://wa.me/${site.whatsappNumber}?text=${encodeURIComponent("Hi! I'm interested in your collection at Bazaar Panun.")}`}
+      href={`https://wa.me/${store.whatsappNumber}?text=${encodeURIComponent(store.whatsappMessage)}`}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat on WhatsApp"

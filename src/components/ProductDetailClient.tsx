@@ -10,9 +10,10 @@ import { StarRating } from "./StarRating";
 import { ProductCard } from "./ProductCard";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
-import { site } from "@/lib/site";
+import { useSite } from "@/components/SiteProvider";
 
 export function ProductDetailClient({ product, related }: { product: Product; related: Product[] }) {
+  const site = useSite().settings.store;
   const [activeImage, setActiveImage] = useState(0);
   const [size, setSize] = useState<string | undefined>(product.sizes?.[0]);
   const [color, setColor] = useState<string | undefined>(product.colors?.[0]);

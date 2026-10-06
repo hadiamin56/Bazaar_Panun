@@ -1,30 +1,33 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { MessageCircle, Mail, MapPin } from "lucide-react";
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
-import { site } from "@/lib/site";
-import categories from "@/data/categories.json";
+import { useSite } from "@/components/SiteProvider";
 
 export function Footer() {
+  const { settings, categories } = useSite();
+  const site = settings.store;
   return (
     <footer className="mt-16 border-t border-gray-100 bg-gray-50">
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-12 sm:px-6 md:grid-cols-4 lg:px-8">
         <div className="col-span-2 md:col-span-1">
           <Link href="/" className="mb-3 flex items-center gap-2">
-            <Image src="/brand/logo.svg" alt={site.name} width={36} height={36} />
-            <span className="font-serif text-lg font-bold">Bazaar Panun</span>
+            <Image src={site.logo} alt={site.name} width={36} height={36} className="h-9 w-9 object-contain" />
+            <span className="font-serif text-lg font-bold">{site.name}</span>
           </Link>
-          <p className="text-sm text-gray-500">{site.tagline}. Bringing authentic Kashmiri craftsmanship to your wardrobe.</p>
+          <p className="whitespace-pre-wrap text-sm text-gray-500">{site.footerAbout}</p>
           <div className="mt-4 flex gap-3">
-            <a
-              href={site.instagram}
+            {site.instagramUrl && <a
+              href={site.instagramUrl}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram"
               className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-600 shadow-sm transition hover:text-brand-pink"
             >
               <InstagramIcon size={18} />
-            </a>
+            </a>}
             <a
               href={`https://wa.me/${site.whatsappNumber}`}
               target="_blank"
@@ -40,7 +43,7 @@ export function Footer() {
         <div>
           <h3 className="mb-3 text-sm font-semibold text-gray-900">Shop</h3>
           <ul className="space-y-2 text-sm text-gray-500">
-            {categories.slice(0, 5).map((c) => (
+            {categories.slice(0, 6).map((c) => (
               <li key={c.slug}>
                 <Link href={`/shop?category=${c.slug}`} className="hover:text-brand-purple">
                   {c.name}
@@ -83,7 +86,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-gray-100 py-4 text-center text-xs text-gray-400">
-        © {new Date().getFullYear()} Bazaar Panun. All rights reserved. · No Exchange / No Return on unstitched fabric.
+        © {new Date().getFullYear()} {site.name}. All rights reserved.{site.footerNote && ` · ${site.footerNote}`}
       </div>
     </footer>
   );

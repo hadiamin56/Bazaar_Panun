@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       colors: input.colors ?? [],
       tags: input.tags ?? [],
       stock: (input.stock as number | undefined) ?? 0,
-      isNew: true,
+      isNew: (input.isNew as boolean | undefined) ?? true,
       isFeatured: (input.isFeatured as boolean | undefined) ?? false,
     },
   });

@@ -7,14 +7,18 @@ import { useRouter } from "next/navigation";
 import { Menu, X, Search, Heart, ShoppingBag, User } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
-import categories from "@/data/categories.json";
-
-const navLinks = [
-  { href: "/shop", label: "Shop All" },
-  ...categories.map((c) => ({ href: `/shop?category=${c.slug}`, label: c.name })),
-];
+import { useSite } from "@/components/SiteProvider";
 
 export function Navbar() {
+  const { settings, categories } = useSite();
+  const { store } = settings;
+  const navLinks = [
+    { href: "/shop", label: "Shop All" },
+    ...categories.map((c) => ({ href: `/shop?category=${c.slug}`, label: c.name })),
+  ];
+  // Two-tone name: last word in the brand gradient, e.g. "Bazaar" + "Panun".
+  const nameParts = store.name.trim().split(" ");
+  const lastWord = nameParts.length > 1 ? nameParts.pop() : "";
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -30,9 +34,11 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur">
-      <div className="brand-gradient py-1.5 text-center text-xs font-medium text-white">
-        Free shipping on orders above ₹5,000 &nbsp;•&nbsp; Cash on Delivery available
-      </div>
+      {store.announcement && (
+        <div className="brand-gradient whitespace-pre-wrap px-4 py-1.5 text-center text-xs font-medium text-white">
+          {store.announcement}
+        </div>
+      )}
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <button
           className="p-1 lg:hidden"
@@ -43,9 +49,9 @@ export function Navbar() {
         </button>
 
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/brand/logo.svg" alt="Bazaar Panun" width={40} height={40} className="h-9 w-9" />
+          <Image src={store.logo} alt={store.name} width={40} height={40} className="h-9 w-9 object-contain" />
           <span className="hidden font-serif text-xl font-bold tracking-tight text-gray-900 sm:block">
-            Bazaar <span className="brand-gradient-text">Panun</span>
+            {nameParts.join(" ")} {lastWord && <span className="brand-gradient-text">{lastWord}</span>}
           </span>
         </Link>
 
@@ -114,7 +120,7 @@ export function Navbar() {
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
           <div className="absolute left-0 top-0 h-screen w-72 overflow-y-auto bg-white p-5 shadow-xl">
             <div className="mb-6 flex items-center justify-between">
-              <span className="font-serif text-lg font-bold">Bazaar Panun</span>
+              <span className="font-serif text-lg font-bold">{store.name}</span>
               <button aria-label="Close menu" onClick={() => setOpen(false)}>
                 <X size={22} />
               </button>

@@ -48,7 +48,11 @@ export function parseProductInput(body: unknown, partial: boolean): Result {
     if (!has(key)) continue;
     const list = b[key] === null ? [] : stringList(b[key]);
     if (!list) return { error: `${key} must be a list of text values` };
-    data[key] = list;
+    // Photos must be uploads or files on this site.
+    if (key === "images" && list.some((url) => !url.startsWith("/") || url.startsWith("//"))) {
+      return { error: "Invalid image address" };
+    }
+    data[key] = list.slice(0, 30);
   }
   if (has("isFeatured")) data.isFeatured = !!b.isFeatured;
   if (has("isNew")) data.isNew = !!b.isNew;

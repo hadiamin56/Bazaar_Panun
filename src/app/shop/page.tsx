@@ -2,11 +2,12 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getProducts, getCategories } from "@/lib/products";
 import { ShopClient } from "@/components/ShopClient";
+import { getSettings } from "@/lib/settings";
 
-export const metadata: Metadata = {
-  title: "Shop All | Bazaar Panun",
-  description: "Browse our full collection of Kashmiri fabric, suits, bridal wear, shawls and clutches.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { store } = await getSettings();
+  return { title: `Shop All | ${store.name}`, description: store.seoDescription };
+}
 
 export const dynamic = "force-dynamic";
 

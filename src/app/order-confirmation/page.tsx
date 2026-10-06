@@ -6,10 +6,12 @@ import { useSearchParams } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import type { Order } from "@/lib/types";
 import { formatPrice } from "@/lib/format";
+import { useSite } from "@/components/SiteProvider";
 
 function Confirmation() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
+  const storeName = useSite().settings.store.name;
   const [order, setOrder] = useState<Order | null>(null);
 
   useEffect(() => {
@@ -24,7 +26,7 @@ function Confirmation() {
       <CheckCircle2 size={64} className="mx-auto text-brand-teal" />
       <h1 className="mt-4 font-serif text-3xl font-bold text-gray-900">Order Placed Successfully!</h1>
       <p className="mt-2 text-sm text-gray-500">
-        Thank you for shopping with Bazaar Panun. {id && <>Your order ID is <span className="font-semibold text-gray-800">{id}</span>.</>}
+        Thank you for shopping with {storeName}. {id && <>Your order ID is <span className="font-semibold text-gray-800">{id}</span>.</>}
       </p>
       <p className="mt-1 text-sm text-gray-500">We&apos;ll reach out to you shortly to confirm delivery details.</p>
 
