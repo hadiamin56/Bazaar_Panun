@@ -87,6 +87,9 @@ Render runs the website; the database is a free hosted MySQL from [Aiven](https:
    - `ADMIN_PASSWORD` — your admin password
    - `DATABASE_CA_CERT` — leave empty unless you chose `strict` in step 2
    (`ADMIN_SESSION_SECRET` is generated for you.)
+   If you created the service by hand as a **Docker** web service instead, that works too: Render uses
+   the `Dockerfile`, which sets up the tables when the site starts. Add the same environment variables
+   (including `ADMIN_SESSION_SECRET`, a random string of 32+ characters) under **Environment**.
 4. **Deploy.** Each deploy creates or updates the tables and, the first time only, loads the 25 starting
    products. Your site will be at `https://bazaar-panun.onrender.com` (or similar).
 
