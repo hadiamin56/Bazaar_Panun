@@ -1,30 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readOrders, writeOrders } from "@/lib/orders";
-import type { Order } from "@/lib/types";
+import { isAdmin } from "@/lib/auth";
+import { OrderError, createOrder, listOrders, toPublicOrder } from "@/lib/orders";
 
 export async function GET() {
-  const orders = readOrders().sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-  return NextResponse.json(orders);
+  if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  return NextResponse.json(await listOrders());
 }
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as Omit<Order, "id" | "status" | "createdAt">;
-  if (!body.items?.length || !body.customer?.name || !body.customer?.phone) {
-    return NextResponse.json({ error: "Missing required order fields" }, { status: 400 });
+  try {
+    const order = await createOrder(await req.json().catch(() => null));
+    return NextResponse.json(toPublicOrder(order), { status: 201 });
+  } catch (e) {
+    if (e instanceof OrderError) return NextResponse.json({ error: e.message }, { status: e.status });
+    throw e;
   }
-  const orders = readOrders();
-  const order: Order = {
-    id: `BP${Date.now().toString(36).toUpperCase()}`,
-    items: body.items,
-    subtotal: body.subtotal,
-    shipping: body.shipping,
-    total: body.total,
-    customer: body.customer,
-    paymentMethod: body.paymentMethod || "whatsapp",
-    status: "pending",
-    createdAt: new Date().toISOString(),
-  };
-  orders.unshift(order);
-  writeOrders(orders);
-  return NextResponse.json(order, { status: 201 });
 }

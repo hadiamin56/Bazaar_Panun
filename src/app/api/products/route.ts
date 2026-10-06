@@ -1,40 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readProducts, writeProducts } from "@/lib/products";
-import type { Product } from "@/lib/types";
+import { randomBytes } from "crypto";
+import { prisma } from "@/lib/db";
+import { isAdmin } from "@/lib/auth";
+import { getProducts, toProduct } from "@/lib/products";
+import { parseProductInput } from "@/lib/product-input";
 
 export async function GET() {
-  return NextResponse.json(readProducts());
+  return NextResponse.json(await getProducts());
 }
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as Partial<Product>;
-  if (!body.name || !body.category || typeof body.price !== "number") {
-    return NextResponse.json({ error: "name, category and price are required" }, { status: 400 });
-  }
-  const products = readProducts();
-  const id = `P${(products.length + 1).toString().padStart(3, "0")}-${Date.now().toString(36)}`;
-  const slug = `${body.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${id.toLowerCase()}`;
-  const product: Product = {
-    id,
-    slug,
-    name: body.name,
-    category: body.category,
-    price: body.price,
-    compareAtPrice: body.compareAtPrice,
-    images: body.images && body.images.length ? body.images : ["/products/placeholder.svg"],
-    description: body.description || "",
-    fabric: body.fabric,
-    sizes: body.sizes,
-    colors: body.colors,
-    stock: body.stock ?? 0,
-    rating: 0,
-    reviewCount: 0,
-    isNew: true,
-    isFeatured: !!body.isFeatured,
-    tags: body.tags || [],
-    createdAt: new Date().toISOString(),
-  };
-  products.unshift(product);
-  writeProducts(products);
-  return NextResponse.json(product, { status: 201 });
+  if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const parsed = parseProductInput(await req.json().catch(() => null), false);
+  if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  const input = parsed.data;
+
+  const category = await prisma.category.findUnique({ where: { slug: input.categorySlug as string } });
+  if (!category) return NextResponse.json({ error: "Unknown category" }, { status: 400 });
+
+  const id = `P${randomBytes(4).toString("hex").toUpperCase()}`;
+  const slug = `${(input.name as string).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${id.toLowerCase()}`;
+  const images = Array.isArray(input.images) && input.images.length ? input.images : ["/products/placeholder.svg"];
+
+  const row = await prisma.product.create({
+    data: {
+      id,
+      slug,
+      name: input.name as string,
+      categorySlug: category.slug,
+      price: input.price as number,
+      compareAtPrice: (input.compareAtPrice as number | null | undefined) ?? null,
+      images,
+      description: (input.description as string | undefined) ?? "",
+      fabric: (input.fabric as string | null | undefined) ?? null,
+      sizes: input.sizes ?? [],
+      colors: input.colors ?? [],
+      tags: input.tags ?? [],
+      stock: (input.stock as number | undefined) ?? 0,
+      isNew: true,
+      isFeatured: (input.isFeatured as boolean | undefined) ?? false,
+    },
+  });
+  return NextResponse.json(toProduct(row), { status: 201 });
 }

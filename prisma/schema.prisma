@@ -1,0 +1,106 @@
+// Database schema for Bazaar Panun.
+// Works with MySQL 8 and MariaDB 10.6+ (the database Hostinger provides).
+// After changing this file, create a migration with:  npm run db:migrate -- --name <what-changed>
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Category {
+  slug        String    @id @db.VarChar(100)
+  name        String    @db.VarChar(150)
+  description String    @db.Text
+  image       String    @db.VarChar(500)
+  sortOrder   Int       @default(0)
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id             String      @id @db.VarChar(50)
+  slug           String      @unique @db.VarChar(200)
+  name           String      @db.VarChar(200)
+  categorySlug   String      @db.VarChar(100)
+  category       Category    @relation(fields: [categorySlug], references: [slug], onUpdate: Cascade)
+  // Prices are whole rupees.
+  price          Int
+  compareAtPrice Int?
+  images         Json
+  description    String      @db.Text
+  fabric         String?     @db.VarChar(200)
+  sizes          Json?
+  colors         Json?
+  tags           Json?
+  stock          Int         @default(0)
+  rating         Float       @default(0)
+  reviewCount    Int         @default(0)
+  isNew          Boolean     @default(false)
+  isFeatured     Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  orderItems     OrderItem[]
+
+  @@index([categorySlug])
+  @@map("products")
+}
+
+enum PaymentMethod {
+  cod
+  whatsapp
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  shipped
+  delivered
+  cancelled
+}
+
+model Order {
+  id            String        @id @db.VarChar(20)
+  subtotal      Int
+  shipping      Int
+  total         Int
+  customerName  String        @db.VarChar(150)
+  phone         String        @db.VarChar(30)
+  email         String?       @db.VarChar(200)
+  address       String        @db.VarChar(500)
+  city          String        @db.VarChar(100)
+  pincode       String        @db.VarChar(20)
+  notes         String?       @db.Text
+  paymentMethod PaymentMethod @default(cod)
+  status        OrderStatus   @default(pending)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  items         OrderItem[]
+
+  @@index([createdAt])
+  @@map("orders")
+}
+
+// Name, image and price are copied from the product when the order is placed,
+// so editing or deleting a product later never changes an existing order.
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   String   @db.VarChar(20)
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?  @db.VarChar(50)
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  slug      String   @db.VarChar(200)
+  name      String   @db.VarChar(200)
+  image     String   @db.VarChar(500)
+  price     Int
+  size      String?  @db.VarChar(50)
+  color     String?  @db.VarChar(50)
+  quantity  Int
+
+  @@index([orderId])
+  @@map("order_items")
+}

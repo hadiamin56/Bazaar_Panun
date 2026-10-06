@@ -2,13 +2,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Truck, ShieldCheck, RotateCcw, MessageCircle } from "lucide-react";
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
-import { readProducts, readCategories } from "@/lib/products";
+import { getProducts, getCategories } from "@/lib/products";
 import { ProductCard } from "@/components/ProductCard";
 import { site } from "@/lib/site";
 
-export default function Home() {
-  const products = readProducts();
-  const categories = readCategories();
+// Always read the latest products from the database.
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [products, categories] = await Promise.all([getProducts(), getCategories()]);
   const featured = products.filter((p) => p.isFeatured).slice(0, 8);
   const newArrivals = [...products].filter((p) => p.isNew).slice(0, 4);
 

@@ -74,8 +74,4 @@ fs.writeFileSync(
   path.join(__dirname, "..", "src", "data", "products.seed.json"),
   JSON.stringify(products, null, 2)
 );
-fs.writeFileSync(
-  path.join(__dirname, "..", "src", "data", "products.json"),
-  JSON.stringify(products, null, 2)
-);
-console.log(`Generated ${products.length} products.`);
+console.log(`Generated ${products.length} products. Run "npm run db:seed" to load them into the database.`);

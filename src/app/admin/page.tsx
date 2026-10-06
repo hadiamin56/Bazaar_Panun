@@ -7,35 +7,49 @@ import type { Product, Order } from "@/lib/types";
 import { formatPrice } from "@/lib/format";
 import categories from "@/data/categories.json";
 
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "bazaarpanun2024";
-const AUTH_KEY = "bp-admin-auth";
-
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read of session auth flag on mount
-    setAuthed(sessionStorage.getItem(AUTH_KEY) === "true");
-    setChecked(true);
+    fetch("/api/admin/session")
+      .then((r) => r.json())
+      .then((d) => setAuthed(!!d.authenticated))
+      .catch(() => setAuthed(false))
+      .finally(() => setChecked(true));
   }, []);
+
+  const logout = async () => {
+    await fetch("/api/admin/session", { method: "DELETE" });
+    setAuthed(false);
+  };
 
   if (!checked) return null;
   if (!authed) return <LoginGate onSuccess={() => setAuthed(true)} />;
-  return <Dashboard onLogout={() => { sessionStorage.removeItem(AUTH_KEY); setAuthed(false); }} />;
+  return <Dashboard onLogout={logout} onUnauthorized={() => setAuthed(false)} />;
 }
 
 function LoginGate({ onSuccess }: { onSuccess: () => void }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      sessionStorage.setItem(AUTH_KEY, "true");
-      onSuccess();
-    } else {
-      setError("Incorrect password");
+    setSubmitting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (res.ok) onSuccess();
+      else setError(res.status === 401 ? "Incorrect password" : "Login failed. Please try again.");
+    } catch {
+      setError("Login failed. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -55,15 +69,19 @@ function LoginGate({ onSuccess }: { onSuccess: () => void }) {
           className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-brand-purple"
         />
         {error && <p className="text-sm text-red-500">{error}</p>}
-        <button type="submit" className="w-full rounded-full bg-brand-purple py-2.5 text-sm font-semibold text-white">
-          Login
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full rounded-full bg-brand-purple py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {submitting ? "Logging in..." : "Login"}
         </button>
       </form>
     </div>
   );
 }
 
-function Dashboard({ onLogout }: { onLogout: () => void }) {
+function Dashboard({ onLogout, onUnauthorized }: { onLogout: () => void; onUnauthorized: () => void }) {
   const [tab, setTab] = useState<"products" | "orders">("products");
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -71,30 +89,43 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const loadData = () => {
+  // Sends a request and reports a failure; returns false if it failed.
+  const send = async (url: string, init?: RequestInit) => {
+    const res = await fetch(url, init);
+    if (res.status === 401) {
+      onUnauthorized();
+      return false;
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error || "Something went wrong. Please try again.");
+      return false;
+    }
+    return true;
+  };
+
+  const loadData = async () => {
     setLoading(true);
-    Promise.all([fetch("/api/products").then((r) => r.json()), fetch("/api/orders").then((r) => r.json())]).then(
-      ([p, o]) => {
-        setProducts(p);
-        setOrders(o);
-        setLoading(false);
-      }
-    );
+    const [p, o] = await Promise.all([fetch("/api/products"), fetch("/api/orders")]);
+    if (o.status === 401) return onUnauthorized();
+    setProducts(await p.json());
+    setOrders(await o.json());
+    setLoading(false);
   };
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch on mount
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
   const deleteProduct = async (id: string) => {
     if (!confirm("Delete this product?")) return;
-    await fetch(`/api/products/${id}`, { method: "DELETE" });
-    loadData();
+    if (await send(`/api/products/${id}`, { method: "DELETE" })) loadData();
   };
 
   const updateOrderStatus = async (id: string, status: Order["status"]) => {
-    await fetch(`/api/orders/${id}`, {
+    await send(`/api/orders/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
@@ -222,6 +253,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       {showForm && (
         <ProductForm
           product={editing}
+          send={send}
           onClose={() => setShowForm(false)}
           onSaved={() => {
             setShowForm(false);
@@ -258,10 +290,12 @@ function TabButton({
 
 function ProductForm({
   product,
+  send,
   onClose,
   onSaved,
 }: {
   product: Product | null;
+  send: (url: string, init?: RequestInit) => Promise<boolean>;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -286,29 +320,21 @@ function ProductForm({
       name: form.name,
       category: form.category,
       price: Number(form.price),
-      compareAtPrice: form.compareAtPrice ? Number(form.compareAtPrice) : undefined,
+      compareAtPrice: form.compareAtPrice ? Number(form.compareAtPrice) : null,
       fabric: form.fabric,
       stock: Number(form.stock),
       description: form.description,
-      sizes: form.sizes ? form.sizes.split(",").map((s) => s.trim()).filter(Boolean) : undefined,
-      colors: form.colors ? form.colors.split(",").map((s) => s.trim()).filter(Boolean) : undefined,
+      sizes: form.sizes.split(",").map((s) => s.trim()).filter(Boolean),
+      colors: form.colors.split(",").map((s) => s.trim()).filter(Boolean),
       isFeatured: form.isFeatured,
     };
-    if (product) {
-      await fetch(`/api/products/${product.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-    } else {
-      await fetch("/api/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-    }
+    const ok = await send(product ? `/api/products/${product.id}` : "/api/products", {
+      method: product ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
     setSaving(false);
-    onSaved();
+    if (ok) onSaved();
   };
 
   return (

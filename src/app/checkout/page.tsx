@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatPrice } from "@/lib/format";
 import { site } from "@/lib/site";
+import type { OrderItem } from "@/lib/types";
 
 export default function CheckoutPage() {
   const items = useCartStore((s) => s.items);
@@ -68,21 +69,21 @@ export default function CheckoutPage() {
           paymentMethod,
         }),
       });
-      if (!res.ok) throw new Error("Failed to place order");
-      const order = await res.json();
+      const order = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(order?.error || "Something went wrong placing your order. Please try again.");
 
       if (paymentMethod === "whatsapp") {
-        const lines = items.map((i) => `- ${i.name}${i.size ? ` (${i.size})` : ""} x${i.quantity} — ${formatPrice(i.price * i.quantity)}`);
+        const lines = (order.items as OrderItem[]).map((i) => `- ${i.name}${i.size ? ` (${i.size})` : ""} x${i.quantity} — ${formatPrice(i.price * i.quantity)}`);
         const msg = encodeURIComponent(
-          `Hi Bazaar Panun! I'd like to place order ${order.id}:\n${lines.join("\n")}\n\nTotal: ${formatPrice(total)}\n\nName: ${form.name}\nPhone: ${form.phone}\nAddress: ${form.address}, ${form.city} - ${form.pincode}`
+          `Hi Bazaar Panun! I'd like to place order ${order.id}:\n${lines.join("\n")}\n\nTotal: ${formatPrice(order.total)}\n\nName: ${form.name}\nPhone: ${form.phone}\nAddress: ${form.address}, ${form.city} - ${form.pincode}`
         );
         window.open(`https://wa.me/${site.whatsappNumber}?text=${msg}`, "_blank");
       }
 
       clear();
       router.push(`/order-confirmation?id=${order.id}`);
-    } catch {
-      setError("Something went wrong placing your order. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong placing your order. Please try again.");
     } finally {
       setSubmitting(false);
     }
