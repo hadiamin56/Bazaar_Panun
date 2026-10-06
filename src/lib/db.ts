@@ -1,23 +1,11 @@
 import "server-only";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { PrismaClient } from "@/generated/prisma/client";
+import { databaseConfig } from "./db-config";
 
-// The MariaDB driver talks to both MySQL and MariaDB (Hostinger).
+// The MariaDB driver talks to both MySQL and MariaDB (Hostinger, Aiven).
 function createClient() {
-  const raw = process.env.DATABASE_URL;
-  if (!raw) throw new Error("DATABASE_URL is not set. Copy .env.example to .env and fill it in.");
-  const url = new URL(raw);
-  const adapter = new PrismaMariaDb({
-    host: url.hostname,
-    port: url.port ? Number(url.port) : 3306,
-    user: decodeURIComponent(url.username),
-    password: decodeURIComponent(url.password),
-    database: url.pathname.replace(/^\//, ""),
-    connectionLimit: 5,
-    // MySQL 8 users with caching_sha2_password auth need this over non-TLS connections.
-    allowPublicKeyRetrieval: true,
-  });
-  return new PrismaClient({ adapter });
+  return new PrismaClient({ adapter: new PrismaMariaDb(databaseConfig()) });
 }
 
 // Reuse one client across hot reloads in development.

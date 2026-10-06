@@ -69,6 +69,31 @@ All data lives in MySQL:
   Running `npm run db:seed` again only adds products that are missing; it never overwrites your edits.
   Categories shown in the menu and footer are read from `src/data/categories.json`.
 
+## Deploying to Render (free, for testing)
+
+Render runs the website; the database is a free hosted MySQL from [Aiven](https://aiven.io)
+(Render only offers Postgres). The settings for Render are in `render.yaml`.
+
+1. **Create the database on Aiven.** Sign up → Create service → **MySQL** → **Free plan** → pick a region
+   close to your Render region. When it is running, open it and copy the **Service URI**. It looks like
+   `mysql://avnadmin:PASSWORD@mysql-xxxx.aivencloud.com:12345/defaultdb?ssl-mode=REQUIRED`.
+2. **Turn it into `DATABASE_URL`:** replace `?ssl-mode=REQUIRED` with `?sslaccept=accept_invalid_certs`:
+   `mysql://avnadmin:PASSWORD@mysql-xxxx.aivencloud.com:12345/defaultdb?sslaccept=accept_invalid_certs`
+   (the connection is encrypted). To also verify Aiven's certificate, use `?sslaccept=strict` instead and
+   paste Aiven's **CA certificate** (Download CA cert on the service page) into `DATABASE_CA_CERT`.
+3. **Create the site on Render.** Push this code to GitHub, then in Render: **New → Blueprint**, connect
+   the repository and pick this branch. Render reads `render.yaml` and asks for:
+   - `DATABASE_URL` — from step 2
+   - `ADMIN_PASSWORD` — your admin password
+   - `DATABASE_CA_CERT` — leave empty unless you chose `strict` in step 2
+   (`ADMIN_SESSION_SECRET` is generated for you.)
+4. **Deploy.** Each deploy creates or updates the tables and, the first time only, loads the 25 starting
+   products. Your site will be at `https://bazaar-panun.onrender.com` (or similar).
+
+Free plan notes: the site sleeps after 15 minutes without visitors, so the first visit after that takes
+up to a minute. Files saved on the Render server are lost on each deploy, so product photos should stay
+in the repository (or a storage service) rather than be uploaded to the server.
+
 ## Deploying to Hostinger
 
 Hostinger provides MySQL/MariaDB with its hosting, which this site works with directly.

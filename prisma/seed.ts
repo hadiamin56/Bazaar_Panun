@@ -1,23 +1,15 @@
 // Loads the starting categories and products into the database.
-// Safe to run more than once: existing products are left as they are (so admin edits and stock aren't overwritten).
+// Safe to run on every deploy: products are only loaded when the products table is empty,
+// so admin edits, stock changes and deleted products are never undone.
 // Run with:  npm run db:seed
 import "dotenv/config";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { databaseConfig } from "../src/lib/db-config";
 import categories from "../src/data/categories.json";
 import products from "../src/data/products.seed.json";
 
-const url = new URL(process.env.DATABASE_URL ?? "");
-const prisma = new PrismaClient({
-  adapter: new PrismaMariaDb({
-    host: url.hostname,
-    port: url.port ? Number(url.port) : 3306,
-    user: decodeURIComponent(url.username),
-    password: decodeURIComponent(url.password),
-    database: url.pathname.replace(/^\//, ""),
-    allowPublicKeyRetrieval: true,
-  }),
-});
+const prisma = new PrismaClient({ adapter: new PrismaMariaDb(databaseConfig()) });
 
 async function main() {
   for (const [i, c] of categories.entries()) {
@@ -28,10 +20,13 @@ async function main() {
     });
   }
 
-  let added = 0;
+  const existing = await prisma.product.count();
+  if (existing > 0) {
+    console.log(`Seeded ${categories.length} categories. Products already loaded (${existing}), skipped.`);
+    return;
+  }
+
   for (const p of products as Array<(typeof products)[number] & { sizes?: string[]; compareAtPrice?: number }>) {
-    const exists = await prisma.product.findUnique({ where: { id: p.id } });
-    if (exists) continue;
     await prisma.product.create({
       data: {
         id: p.id,
@@ -54,10 +49,9 @@ async function main() {
         createdAt: new Date(p.createdAt),
       },
     });
-    added++;
   }
 
-  console.log(`Seeded ${categories.length} categories and ${added} new products (${products.length - added} already existed).`);
+  console.log(`Seeded ${categories.length} categories and ${products.length} products.`);
 }
 
 main()
